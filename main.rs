@@ -1,4 +1,6 @@
 use std::env; // to get arugments passed to the program
+use std::thread;
+use thread::JoinHandle;
 
 /*
 * Print the number of partitions and the size of each partition
@@ -123,8 +125,19 @@ fn main() {
 
     // Change the following code to create 2 threads that run concurrently and each of which uses map_data() function to process one of the two partitions
 
-    intermediate_sums.push(map_data(&xs[0]));
-    intermediate_sums.push(map_data(&xs[1]));
+    let xs_clone = xs[1].clone();
+
+    let thread_1 = thread::spawn(move || map_data(&xs[0]));
+    let thread_2 = thread::spawn(move || map_data(&xs_clone));
+
+    let sum_1 = thread_1.join().unwrap();
+    let sum_2 = thread_2.join().unwrap();
+
+    intermediate_sums.push(sum_1);
+    intermediate_sums.push(sum_2);
+
+    //intermediate_sums.push(map_data(&xs[0]));
+    //intermediate_sums.push(map_data(&xs[1]));
 
     // CHANGE CODE END: Don't change any code below this line until the next CHANGE CODE comment
 
@@ -144,6 +157,29 @@ fn main() {
     // 5. Calls reduce_data to process the intermediate sums
     // 6. Prints the final sum computed by reduce_data
 
+    let xs_2 = partition_data(num_partitions, &v);
+    
+    print_partition_info(&xs_2);
+
+    let mut intermediate_sums_2 : Vec<usize> = Vec::new();
+
+    let mut threads = vec![];
+
+    for i in 0..num_partitions {
+       let xs_2_clone = xs_2[i].clone();
+
+       threads.push(thread::spawn(move || -> usize { map_data(&xs_2_clone) }));
+    }
+
+    for thread in threads {
+       let sum = thread.join().unwrap();
+       intermediate_sums_2.push(sum);
+    }
+
+    println!("Intermediate sums 2 = {:?}", intermediate_sums_2);
+
+    let final_sum = reduce_data(&intermediate_sums_2);
+    println!("Sum = {}", final_sum);
 }
 
 /*
@@ -161,6 +197,29 @@ fn main() {
 * 
 */
 fn partition_data(num_partitions: usize, v: &Vec<usize>) -> Vec<Vec<usize>>{
+    let size = v.len() / num_partitions;
+    let remainder = v.len() % num_partitions;
+
+    let mut xs: Vec<Vec<usize>> = Vec::new();
+
+    let mut idx = 0;
+
+    for i in 0..size {
+       let mut x1 : Vec<usize> = Vec::new();
+       let idx_2 = i + size;
+       for i in idx..idx_2 {
+	  x1.push(v[i]);
+	  idx = idx_2;
+       }
+       xs.push(x1);
+    }
+
+    for i in 0..remainder {
+       xs[i].push(v[idx]);
+       idx += 1;
+    }
+    
+    xs   
     // Remove the following line which has been added to remove a compiler error
-    partition_data_in_two(v)
+    //partition_data_in_two(v)
 }
